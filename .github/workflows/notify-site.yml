@@ -1,0 +1,16 @@
+name: Notify personal site
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger personal-site rebuild
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.SITE_DEPLOY_TOKEN }}
+          repository: pike00/personal-site
+          event-type: blog-updated
