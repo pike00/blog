@@ -3,7 +3,7 @@ title: "The agent reads your .env. So does the prompt cache."
 description: "I built drape because the obvious fixes — don't have .env in the repo, use a vault, gitignore harder — don't help when the agent is the thing doing the reading."
 date: "2026-05-07"
 tags: ["Security", "Claude Code", "Python", "drape"]
-draft: false
+draft: true
 ---
 
 # The agent reads your .env. So does the prompt cache.

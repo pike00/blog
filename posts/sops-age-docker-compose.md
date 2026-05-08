@@ -3,7 +3,7 @@ title: "Secrets at Rest: SOPS + age for Docker Compose Homelabs"
 description: "SOPS encrypts .env files in place, git tracks the encrypted versions, and sops exec-file decrypts them into memory at deploy time. Plaintext never touches disk."
 date: "2026-04-29"
 tags: ["Homelab", "Security", "Docker", "SOPS"]
-draft: false
+draft: true
 ---
 
 # Secrets at Rest: SOPS + age for Docker Compose Homelabs
