@@ -3,7 +3,7 @@ title: "Secrets at Rest: SOPS + age for Docker Compose Homelabs"
 description: "SOPS encrypts .env files in place, git tracks the encrypted versions, and sops exec-file decrypts them into memory at deploy time. Plaintext never touches disk."
 date: "2026-04-29"
 tags: ["Homelab", "Security", "Docker", "SOPS"]
-draft: true
+draft: false
 ---
 
 # Secrets at Rest: SOPS + age for Docker Compose Homelabs
@@ -83,7 +83,7 @@ creation_rules:
   - path_regex: .*\.env(\.sops)?$
     input_type: dotenv
     output_type: dotenv
-    age: &age_key "age1pq1rlg3cuef3cpp0zfgg4me2kpgkkwpy5tj84..."
+    age: &age_key "age1pq1rlg3cuef3cpp0zfgg4me2kpgkkwpy5tj84hr89zsgc8l3jkq6avr48utylkgrtk8y7kjzwfpjwzcfp2s4zn..."
     unencrypted_regex: "^(TZ|PUID|PGID|UMASK|PGDATA|LOG_LEVEL|NODE_ENV|COMPOSE_PROJECT_NAME)$"
 
   # Terraform tfvars -- HCL isn't a native SOPS format, treat as binary
@@ -231,7 +231,7 @@ just secrets keys ai/hermes/.env.sops
 just secrets verify
 ```
 
-The rotation pipeline is worth examining: `sopsx -d` writes plaintext to stdout, `sed`
+The rotation pipeline: `sopsx -d` writes plaintext to stdout, `sed`
 substitutes the value, `sopsx -e` reads from stdin and encrypts back to the same file.
 The new value `$NEW` exists only in shell memory. No temp file, no plaintext on disk.
 
@@ -312,7 +312,7 @@ COMPOSE_PROJECT_NAME=hermes
 POSTGRES_PASSWORD=ENC[AES256_GCM,data:7k9m...==,iv:abc...,tag:xyz...,type:str]
 API_SECRET=ENC[AES256_GCM,data:Lm3p...==,iv:def...,tag:uvw...,type:str]
 sops_version=3.9.1
-sops_age__list_0__recipient=age1pq1rlg3...
+sops_age__list_0__recipient=age1pq1rlg3cuef3cpp0zfgg4me2kpgkkwpy5tj84hr89zsg...
 sops_lastmodified=2026-04-28T14:23:11Z
 ```
 
