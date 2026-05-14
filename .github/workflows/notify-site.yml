@@ -9,8 +9,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger personal-site rebuild
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.SITE_DEPLOY_TOKEN }}
-          repository: pike00/personal-site
-          event-type: blog-updated
+        run: gh api repos/pike00/personal-site/dispatches -f event_type=blog-updated
+        env:
+          GH_TOKEN: ${{ secrets.SITE_DEPLOY_TOKEN }}
