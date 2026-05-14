@@ -6,8 +6,6 @@ tags: ["Homelab", "Security", "Docker", "SOPS"]
 draft: false
 ---
 
-# Secrets at Rest: SOPS + age for Docker Compose Homelabs
-
 I've committed a `.env` file to a public repo exactly once. A secret scanning service I use 
 flagged it within a few minutes. That was a good outcome -- but it was also the moment
 I realized that "add `.env` to `.gitignore`" is a policy that depends entirely on never
@@ -19,6 +17,10 @@ would be the safe choice, not the dangerous one.
 This is what I landed on: SOPS encrypts `.env` files in place, git tracks the encrypted
 versions, and `sops exec-file` decrypts them into memory at deploy time. Plaintext never
 touches disk. 
+
+> If you're already convinced and just want the commands, there's a copy-paste
+> [SOPS + age cheatsheet](https://gist.github.com/pike00/6504ec5734ac7604efa3367c52904b2d)
+> with the setup, daily ops, rotation, and recovery snippets in one place.
 
 ---
 

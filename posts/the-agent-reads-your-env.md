@@ -6,8 +6,6 @@ tags: ["Security", "Claude Code", "Python", "drape"]
 draft: true
 ---
 
-# The agent reads your .env. So does the prompt cache.
-
 Claude Code asks to read `.env` so it can wire up your local dev server. You hit accept. The file goes into the conversation. The conversation goes into the prompt cache. The cache lives on someone else's hardware for some retention window you don't fully control.
 
 Now multiply that by every agent you've pointed at a repo with credentials checked out next to the code.
