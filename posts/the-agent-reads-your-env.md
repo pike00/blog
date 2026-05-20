@@ -1,16 +1,16 @@
 ---
 title: "The agent reads your .env. So does the prompt cache."
 description: "I built drape because the obvious fixes — don't have .env in the repo, use a vault, gitignore harder — don't help when the agent is the thing doing the reading."
-date: "2026-05-07"
+date: "2026-05-20"
 tags: ["Security", "Claude Code", "Python", "drape"]
-draft: true
+draft: false
 ---
 
 Claude Code asks to read `.env` so it can wire up your local dev server. You hit accept. The file goes into the conversation. The conversation goes into the prompt cache. The cache lives on someone else's hardware for some retention window you don't fully control.
 
 Now multiply that by every agent you've pointed at a repo with credentials checked out next to the code.
 
-I built [drape](https://github.com/pike00/drape) because the obvious fixes (don't have `.env` in the repo; use a vault; gitignore harder) don't help when the agent is the thing doing the reading.
+I built [drape](https://github.com/pike00/drape) because the obvious fixes don't help when the agent is the thing doing the reading.
 
 ## What it does
 
@@ -26,7 +26,7 @@ $ drape .env
 DATABASE_URL=<basic-auth>
 AWS_ACCESS_KEY_ID=<aws-access-key>
 GITHUB_TOKEN=<github-token>
-APP_PASSWORD=<low-entropy-secret>
+APP_PASSWORD=cor...
 RANDOM_HEX=a8f...
 ```
 
@@ -34,15 +34,15 @@ The agent still gets a useful file. It sees the shape of the config, the variabl
 
 ## Three strategies, most-protective wins
 
-drape applies three masking strategies in order. Whichever hides more, wins.
+`drape` applies three masking strategies in order. Whichever hides most, wins.
 
 **Pattern recognition.** Known credential shapes are replaced with a type label. AWS keys, GitHub tokens, Slack tokens, JWTs, Stripe keys, private keys, basic-auth URIs, and about fifteen others. Powered by Yelp's `detect-secrets`. Zero characters leak; the agent only learns the type.
 
-**Entropy gate.** Values whose Shannon entropy falls below 3.0 bits per character render as `<low-entropy-secret>`. This catches `hunter2`, `correct-horse-battery-staple`, and the like. A three-character prefix of a passphrase is too informative to share with anything that logs.
+**Entropy gate.** Values whose entropy falls below 3.0 bits per character render as `<low-entropy-secret>`. This catches short, low-variety values like `hunter2` or `password`. Note that passphrases like `correct-horse-battery-staple` have enough character diversity to clear the threshold -- they fall through to prefix reveal instead. The defaults are conservative.
 
 **Length-bounded prefix.** For high-entropy values that don't match a pattern, drape reveals the first three characters, capped at 25% of the value's length. A 22-char hex blob shows three chars (16^19 brute force space remaining). A four-char value shows one char.
 
-Order matters. A short AWS key would otherwise leak a meaningful prefix; the pattern detector catches it first and replaces it with a label. The 25% cap prevents the prefix strategy from doing the wrong thing on tiny values. The defaults are conservative because the cost of getting them wrong is asymmetric.
+Order matters. A short AWS key would otherwise leak a meaningful prefix; the pattern detector catches it first and replaces it with a label. The 25% cap prevents the prefix strategy from doing the wrong thing on tiny values. The defaults are conservative because the cost of getting them wrong is significant.
 
 ## Read isn't the only leak path
 
@@ -69,26 +69,14 @@ Set `DRAPE_AUDIT_LOG=~/.drape-audit.jsonl` and every masking operation appends a
 
 Filename, format, key count. No values, ever. You get a forensic trail of when an agent looked at credentials without writing the credentials anywhere new. The audit writer is the only path in drape that swallows exceptions: if the log destination is unwritable, masking still succeeds. Failing closed on the audit log would be worse than failing open.
 
-## Threat model, briefly
-
-drape protects against:
-- secrets appearing verbatim in agent transcripts and prompt-cache snapshots
-- accidental copy-paste of a credential into chat
-- third-party access to exported or shared sessions
-
-It does not protect against:
-- a compromised local machine (the agent can read what your shell can read)
-- a compromised LLM account (the attacker can request the unmasked file directly)
-- multiline secrets in `.env` (use a structured format and `--format yaml|json|toml`)
-
-It's a defense-in-depth tool. It removes the easiest, dumbest leak path. The rest of your security still has to do its job.
-
 ## Install
 
-```
-pip install drape                # core: .env, .env.sops
-pip install 'drape[all]'         # + YAML, TOML
+```bash
+uv tool install drape                 # core: .env, .env.sops
+uv tool install 'drape[all]'          # + YAML, TOML, and structured format support
 bash scripts/install-claude-hook.sh --project-dir .
 ```
 
-64 tests, 84% line coverage, MIT license. Source at https://github.com/pike00/drape.
+Or run without installing: `uvx drape .env`
+
+64 tests, 88% line coverage, MIT license. Source at https://github.com/pike00/drape.
