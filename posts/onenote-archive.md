@@ -6,6 +6,9 @@ tags: ["Python", "OneNote", "Data Ownership", "PDF", "Playwright", "Medical Scho
 draft: false
 ---
 
+> **GitHub Repository:** [https://github.com/pike00/onenote-archive](https://github.com/pike00/onenote-archive)  
+> *MIT Licensed · Python 3.11+ · Microsoft Graph Sync · Canvas InkML Overlay · Single-Page PDF Exporter*
+
 Throughout medical school, my primary workflow for absorbing dense clinical material involved importing slide decks, anatomy atlases, and lecture printouts into Microsoft OneNote on an iPad. Using an Apple Pencil, I annotated thousands of pages: drawing pathway diagrams, highlighting diagnostic criteria, marking up histological images, and jotting margin notes directly over imported slide printouts. As medical training progresses, this library of annotated clinical knowledge continues to grow.
 
 ![OneNote Archive Web Dashboard](/blog/onenote-archive/onenote_web_ui.png)
