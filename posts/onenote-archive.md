@@ -31,12 +31,14 @@ To solve this lock-in problem and permanently protect these notes, I built [OneN
 
 ![OneNote Ink Rendering Pipeline](/blog/onenote-archive/onenote_ink_rendering.jpg)
 
-The pipeline operates in three distinct phases:
+### 1. Graph Sync (`onenote_dl`)
+Downloads notebook structures, page metadata, embedded slide images, and raw InkML XML streams via Microsoft Graph (`?includeinkML=true`), caching UUID assets locally in `out/`.
 
-1. Graph Sync (`onenote_dl`): Downloads notebook structures, page metadata, embedded slide images, and raw InkML XML streams via Microsoft Graph (`?includeinkML=true`), caching UUID assets locally in `out/`.
-2. Ink & DOM Preprocessing (`onenote_archive`): Parses element bounding boxes across the page HTML, calculates spatial extents, and Normalizes InkML coordinate channels into 96 DPI CSS pixel offsets.
-3. Dual Output Generation:
-   - Path A (HTML Canvas Overlay): Injects an HTML5 `<canvas>` layer positioned at `z-index: 50` directly over slide graphics. A client-side script (`ink_render.js`) parses stroke streams at load time, rendering smooth vector paths with preserved pen colors and widths.
-   - Path B (Continuous Single-Page PDF): Uses headless Playwright Chromium to compute total page height and export un-truncated single-page tall PDFs without artificial page breaks.
+### 2. Ink & DOM Preprocessing (`onenote_archive`)
+Parses element bounding boxes across the page HTML, calculates spatial extents, and normalizes InkML coordinate channels into 96 DPI CSS pixel offsets.
+
+### 3. Dual Output Generation
+- **Path A (HTML Canvas Overlay):** Injects an HTML5 `<canvas>` layer positioned at `z-index: 50` directly over slide graphics. A client-side script (`ink_render.js`) parses stroke streams at load time, rendering smooth vector paths with preserved pen colors and widths.
+- **Path B (Continuous Single-Page PDF):** Uses headless Playwright Chromium to compute total page height and export un-truncated single-page tall PDFs without artificial page breaks.
 
 ---
