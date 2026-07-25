@@ -1,6 +1,6 @@
 ---
-title: Preserving Digital Handwriting: Building an Offline Vector Archive for Microsoft OneNote
-description: How I built an open-source pipeline to extract iPad Apple Pencil slide notes from Microsoft Graph into self-contained HTML canvas pages and continuous tall PDFs, protecting years of medical school notes against cloud lock-in.
+title: "Preserving Digital Handwriting: Building an Offline Vector Archive for Microsoft OneNote"
+description: "How I built an open-source pipeline to extract iPad Apple Pencil slide notes from Microsoft Graph into self-contained HTML canvas pages and continuous tall PDFs, protecting years of medical school notes against cloud lock-in."
 date: "2026-07-24"
 tags: ["Python", "OneNote", "Data Ownership", "PDF", "Playwright", "Medical School"]
 draft: false
