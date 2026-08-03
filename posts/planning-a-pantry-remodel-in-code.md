@@ -1,35 +1,23 @@
 ---
-title: "Planning a pantry remodel in code"
-description: "Turning pantry measurements, shelf stock, and an awkward stud map into an OpenSCAD model, cut schedule, and print-ready job packet."
+title: "Modeling a pantry remodel before buying the shelves"
+description: "I modeled a small pantry in OpenSCAD so I could settle the shelf layout and cut list before buying anything."
 date: "2026-08-03"
 tags: ["OpenSCAD", "DIY", "Python"]
 draft: false
 ---
 
-I expected this pantry remodel to be a shopping-list problem. Measure the walls, count the shelves, buy some brackets. It turned into a small constraint-solving project instead.
+Our pantry is small, and the IKEA IVAR shelves in it now leave a lot of space unused. Before replacing them, I wanted to know whether wire shelving on three walls would actually add storage without making the pantry too cramped to use.
 
-![Three concept views of the planned wire-shelf pantry layout](/blog/planning-a-pantry-remodel-in-code/pantry-concept.png)
+![To-scale footprint of the proposed pantry shelves](/blog/planning-a-pantry-remodel-in-code/pantry-footprint.png)
 
-The interior is 1,158 mm wide, 701 mm deep, and 2,112 mm high. The old IKEA IVAR setup has six 808 by 508 mm shelves, or about 26.5 square feet of shelf surface. I wanted more capacity without making the center of the pantry unpleasant to stand in.
+The room is only 45.6 inches wide and 27.6 inches deep. A 16 inch shelf across the back leaves 11.6 inches of open floor in front of it. Adding 12 inch shelves on the side walls leaves a 21.6 inch opening down the middle. It fits, but there is not much room to guess.
 
-## The layout
+I put the measurements into OpenSCAD and tried a few layouts. The one I kept has five continuous shelves across the back with short returns on both sides. It increases the shelf area from about 26.5 to 34.3 square feet, roughly 29 percent, while keeping the center open from floor to ceiling.
 
-The selected layout uses five continuous 406 mm deep shelves across the rear wall, plus short 305 mm deep returns at the front of both side walls. Each level leaves a 548 mm wide standing bay at the entrance.
+![Dimensioned plan and rear elevation of the pantry shelves](/blog/planning-a-pantry-remodel-in-code/pantry-layout.png)
 
-That produces about 34.3 square feet of shelf surface, a 29.4 percent increase over the IVAR shelves. More importantly, the rear shelf has no center seam, and the stock plan avoids buying unwieldy 144 inch wire shelving.
+The stud locations made the hardware plan less tidy. The rear wall and right side line up well enough with the proposed tracks. The left return does not, so that side either needs blocking or needs to stay limited to light items. I also still need to confirm every stud location before drilling.
 
-The stud map is the part that kept this from being simple. The reported rear and right-wall locations support the main shelves, but the left return lands outside the reported stud zone. The plan therefore treats that return as light-goods-only unless I add blocking, and every reported support location still needs a pilot-hole check before I buy or drill anything.
+I put the model, cut list, shopping list, drawings, and a printable job packet in [pike00/pantry-remodel](https://github.com/pike00/pantry-remodel). I have not built it yet. The dimensions, stud map, fasteners, and product load limits are all marked as things to verify before I buy or cut anything.
 
-## The repository
-
-I put the whole planning packet in [pike00/pantry-remodel](https://github.com/pike00/pantry-remodel):
-
-- A parametric OpenSCAD model of the pantry and five shelf levels.
-- Exact metric cuts with inch conversions and stock allocations.
-- A provisional Menards cart with model numbers and stop conditions.
-- Technical drawings and a three-page PDF job packet generated with ReportLab.
-- A demolition, wall-repair, installation, and load-check sequence.
-
-The useful artifact is not just the rendering. It is the chain from measured envelope, to geometry, to stock lengths, to support constraints, to a packet I can carry into the pantry. If a field measurement changes, the source makes the consequences visible instead of leaving them buried in a handwritten cut list.
-
-This is still a planning record, not a completed installation or a generic shelving prescription. The repository is explicit about the unverified measurements, product instructions, and load limits. I published it now because that provisional state is part of the project, and because the model and packet may be useful to anyone working through a similarly awkward small space.
+Mostly, I wanted one place where a changed measurement would update the plan instead of forcing me to remember which handwritten numbers it affected. The repository is that place, and it should make the actual install less improvisational when I get to it.
