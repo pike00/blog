@@ -32,27 +32,27 @@ RANDOM_HEX=a8f...
 
 The agent still gets a useful file. It sees the shape of the config, the variable names, and a hint at what kind of credential each holds. The actual bytes never enter the model context.
 
-## Three strategies, most-protective wins
+## Three masking strategies
 
 `drape` applies three masking strategies in order. Whichever hides most, wins.
 
-**Pattern recognition.** Known credential shapes are replaced with a type label. AWS keys, GitHub tokens, Slack tokens, JWTs, Stripe keys, private keys, basic-auth URIs, and about fifteen others. Powered by Yelp's `detect-secrets`. Zero characters leak; the agent only learns the type.
+The first strategy is pattern recognition. Known credential shapes are replaced with a type label. AWS keys, GitHub tokens, Slack tokens, JWTs, Stripe keys, private keys, basic-auth URIs, and about fifteen others. Powered by Yelp's `detect-secrets`. Zero characters leak; the agent only learns the type.
 
-**Entropy gate.** Values whose entropy falls below 3.0 bits per character render as `<low-entropy-secret>`. This catches short, low-variety values like `hunter2` or `password`. Note that passphrases like `correct-horse-battery-staple` have enough character diversity to clear the threshold -- they fall through to prefix reveal instead. The defaults are conservative.
+The second is an entropy gate. Values whose entropy falls below 3.0 bits per character render as `<low-entropy-secret>`. This catches short, low-variety values like `hunter2` or `password`. Passphrases like `correct-horse-battery-staple` have enough character diversity to clear the threshold, so they fall through to prefix reveal instead. The defaults are conservative.
 
-**Length-bounded prefix.** For high-entropy values that don't match a pattern, drape reveals the first three characters, capped at 25% of the value's length. A 22-char hex blob shows three chars (16^19 brute force space remaining). A four-char value shows one char.
+The third is a length-bounded prefix. For high-entropy values that don't match a pattern, drape reveals the first three characters, capped at 25% of the value's length. A 22-char hex blob shows three chars (16^19 brute force space remaining). A four-char value shows one char.
 
 Order matters. A short AWS key would otherwise leak a meaningful prefix; the pattern detector catches it first and replaces it with a label. The 25% cap prevents the prefix strategy from doing the wrong thing on tiny values. The defaults are conservative because the cost of getting them wrong is significant.
 
-## Read isn't the only leak path
+## Other leak paths
 
-The first version of drape only intercepted `Read` calls. That's not enough. An agent with `Bash` access can `cat .env` directly. Or `grep PASSWORD .env`. Or pipe through `awk -F=` to skip the masking layer entirely. The hook now covers three Claude Code tools:
+The first version of drape only intercepted `Read` calls, which left other paths open. An agent with `Bash` access can `cat .env` directly, `grep PASSWORD .env`, or pipe through `awk -F=` to skip the masking layer. The hook now covers three Claude Code tools:
 
 - `Read` on a `.env`-shaped path returns the masked rendering.
 - `Grep` on a `.env`-shaped path re-runs the search against the masked rendering, so matches on key names still surface but values stay hidden.
 - `Bash` commands that try to read a `.env`-shaped path with `cat`, `head`, `tail`, `less`, `grep`, `rg`, `ag`, `sed`, `awk`, or `cut` are denied with a redirect telling the agent to use `drape` instead.
 
-The agent doesn't lose the ability to look at config. It loses the ability to look at config the unsafe way.
+The agent can still inspect config, but only through the masking layer.
 
 ## SOPS without round-tripping plaintext
 
@@ -67,7 +67,7 @@ Set `DRAPE_AUDIT_LOG=~/.drape-audit.jsonl` and every masking operation appends a
  "format":"env","key_count":12,"prefix_chars":3}
 ```
 
-Filename, format, key count. No values, ever. You get a forensic trail of when an agent looked at credentials without writing the credentials anywhere new. The audit writer is the only path in drape that swallows exceptions: if the log destination is unwritable, masking still succeeds. Failing closed on the audit log would be worse than failing open.
+Filename, format, key count. No values, ever. The log records when an agent looked at credentials without writing the credentials anywhere new. The audit writer is the only path in drape that swallows exceptions: if the log destination is unwritable, masking still succeeds. Failing closed on the audit log would be worse than failing open.
 
 ## Install
 

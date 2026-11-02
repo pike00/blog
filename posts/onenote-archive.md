@@ -6,39 +6,35 @@ tags: ["Python", "OneNote", "Data Ownership", "PDF", "Playwright", "Medical Scho
 draft: false
 ---
 
-**GitHub Repository:** [https://github.com/pike00/onenote-archive](https://github.com/pike00/onenote-archive)  
-*MIT Licensed · Python 3.14+ · Microsoft Graph Sync · Canvas InkML Overlay · Single-Page PDF Exporter*
+The code is at [github.com/pike00/onenote-archive](https://github.com/pike00/onenote-archive). It is MIT licensed, requires Python 3.14+, syncs through Microsoft Graph, overlays InkML on HTML canvases, and exports single-page tall PDFs.
 
-Throughout medical school, my primary workflow for absorbing dense clinical material involved importing slide decks, anatomy atlases, and lecture printouts into Microsoft OneNote on an iPad. Using an Apple Pencil, I annotated thousands of pages: drawing pathway diagrams, highlighting diagnostic criteria, marking up histological images, and jotting margin notes directly over imported slide printouts. As medical training progresses, this library of annotated clinical knowledge continues to grow.
+In medical school I imported slide decks, anatomy atlases, and lecture printouts into Microsoft OneNote on an iPad. I used an Apple Pencil to annotate thousands of pages: drawing pathway diagrams, marking diagnostic criteria, annotating histological images, and writing margin notes over the imported slides. The collection kept growing as training continued.
 
 ![OneNote Archive Web Dashboard](/blog/onenote-archive/onenote_web_ui.png)
 
 | Medical School Slide Notes (Example 1) | Clinical Annotations (Example 2) | Pathway Diagrams (Example 3) |
 | :---: | :---: | :---: |
 | ![Medical School Slide Notes Example 1](/blog/onenote-archive/example1_annotated_slide.png) | ![Clinical Annotations Example 2](/blog/onenote-archive/example2_annotated_slide.png) | ![Pathway Diagrams Example 3](/blog/onenote-archive/example3_annotated_slide.png) |
-| *Annotated lecture slides with Apple Pencil ink* | *Margin notes and highlighted slide content* | *Pathology & anatomy diagram markups* |
+| *Annotated lecture slides with Apple Pencil ink* | *Margin notes and colored markup on slide content* | *Pathology & anatomy diagram markups* |
 
-However, relying entirely on a single proprietary cloud service to store years of intensive medical education notes introduces two major vulnerabilities:
+Keeping years of notes in one proprietary cloud service tied to an institutional account created two risks:
 
-- Loss of Institutional Email Access: Access tied to institutional or university accounts (such as my Georgetown email address) can be decommissioned, revoked, or restricted post-graduation, threatening total loss of access to years of work.
-- Proprietary Vendor Lock-In: Microsoft OneNote stores page layouts as absolutely positioned HTML elements while encoding handwriting in separate vector stroke streams (InkML XML or proprietary binary structures). Built-in export features routinely truncate long pages, misalign vector ink relative to background graphics, or fail to preserve stroke fidelity entirely.
+- My Georgetown email access could be decommissioned, revoked, or restricted after graduation, taking access to the notebooks with it.
+- OneNote stores page layouts as absolutely positioned HTML elements while handwriting lives in separate vector stroke streams (InkML XML or proprietary binary structures). Built-in exports can truncate long pages, misalign vector ink relative to background graphics, or fail to preserve stroke fidelity.
 
-To solve this lock-in problem and permanently protect these notes, I built [OneNote Archive](https://github.com/pike00/onenote-archive): an automated open-source pipeline that syncs notebooks from Microsoft Graph and compiles them into self-contained HTML pages with dynamic canvas ink rendering, alongside matching continuous single-page tall vector PDFs.
+I built [OneNote Archive](https://github.com/pike00/onenote-archive) to reduce that dependency. It syncs notebooks from Microsoft Graph and compiles them into self-contained HTML pages that render the ink on a canvas, along with matching continuous single-page tall vector PDFs.
 
----
-
-## Pipeline Architecture
+## Pipeline architecture
 
 ![OneNote Ink Rendering Pipeline](/blog/onenote-archive/onenote_ink_rendering.jpg)
 
-### 1. Graph Sync (`onenote_dl`)
+### 1. Graph sync (`onenote_dl`)
 Downloads notebook structures, page metadata, embedded slide images, and raw InkML XML streams via Microsoft Graph (`?includeinkML=true`), caching UUID assets locally in `out/`.
 
-### 2. Ink & DOM Preprocessing (`onenote_archive`)
+### 2. Ink and DOM preprocessing (`onenote_archive`)
 Parses element bounding boxes across the page HTML, calculates spatial extents, and normalizes InkML coordinate channels into 96 DPI CSS pixel offsets.
 
-### 3. Dual Output Generation
-- **Path A (HTML Canvas Overlay):** Injects an HTML5 `<canvas>` layer positioned at `z-index: 50` directly over slide graphics. A client-side script (`ink_render.js`) parses stroke streams at load time, rendering smooth vector paths with preserved pen colors and widths.
-- **Path B (Continuous Single-Page PDF):** Uses headless Playwright Chromium to compute total page height and export un-truncated single-page tall PDFs without artificial page breaks.
+### 3. Two outputs
+The HTML output injects an HTML5 `<canvas>` layer at `z-index: 50` directly over the slide graphics. When the page loads, `ink_render.js` parses the stroke streams and renders vector paths with the original pen colors and widths.
 
----
+The PDF output uses headless Playwright Chromium to compute the total page height and export an untruncated single-page tall PDF without artificial page breaks.

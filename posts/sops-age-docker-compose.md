@@ -6,23 +6,21 @@ tags: ["Homelab", "Security", "Docker", "SOPS"]
 draft: false
 ---
 
-I've committed a `.env` file to a public repo exactly once. A secret scanning service I use 
-flagged it within a few minutes. That was a good outcome -- but it was also the moment
+I've committed a `.env` file to a public repo exactly once. A secret scanning service I use
+flagged it within a few minutes. That was a good outcome, but it was also the moment
 I realized that "add `.env` to `.gitignore`" is a policy that depends entirely on never
 making a mistake. A stray `git add -A`, a backup tool that doesn't respect `.gitignore`,
-a sync client that treats your project directory as documents -- any of them will silently
-blow past that boundary. I wanted a setup where committing the file to a public repo
+or a sync client that treats your project directory as documents can silently cross
+that boundary. I wanted a setup where committing the file to a public repo
 would be the safe choice, not the dangerous one.
 
-This is what I landed on: SOPS encrypts `.env` files in place, git tracks the encrypted
+SOPS encrypts `.env` files in place, git tracks the encrypted
 versions, and `sops exec-file` decrypts them into memory at deploy time. Plaintext never
-touches disk. 
+touches disk.
 
 > If you're already convinced and just want the commands, there's a copy-paste
 > [SOPS + age cheatsheet](https://gist.github.com/pike00/6504ec5734ac7604efa3367c52904b2d)
 > with the setup, daily ops, rotation, and recovery snippets in one place.
-
----
 
 ## Why age over GPG
 
@@ -34,15 +32,13 @@ The private key is a file at a path you choose. The public key is a string you p
 a config file. There's no daemon to restart, no keyring to initialize on a new machine,
 no trust model to configure.
 
-The other difference that matters here is key format. Upstream `age` v1.3.0 added a hybrid
+The key format is the other important difference. Upstream `age` v1.3.0 added a hybrid
 post-quantum key format: ML-KEM-768 + X25519. The public key starts with `age1pq1...`
 and runs about 1,959 characters. A plain X25519 key, by contrast, is about 62 characters.
 The hybrid construction means the ciphertext is secure as long as either the ML-KEM leg
-or the X25519 leg holds. For encryption keys that will stay in git history for years -- and mine
-will -- that seems like the right tradeoff. No plugin is required; this is stock
+or the X25519 leg holds. For encryption keys that will stay in git history for years, as
+mine will, that seems like the right tradeoff. No plugin is required; this is stock
 `brew install age`.
-
----
 
 ## Key generation and the cold key problem
 
@@ -56,22 +52,19 @@ chmod 600 ~/.config/sops/age/keys.txt
 The `-pq` flag generates the hybrid identity. Without it you get a plain X25519 key.
 SOPS discovers `~/.config/sops/age/keys.txt` automatically; no environment variable needed.
 
-Here's the problem I didn't think through carefully enough the first time I set this up:
-my cloud backups are encrypted with this key. If I lose the key, I lose the ability to
+I did not think through the backup dependency carefully the first time I set this up. My
+cloud backups are encrypted with this key. If I lose the key, I lose the ability to
 decrypt those backups. I cannot restore the key from the cloud backups, because those
 backups need the key to decrypt. The key has to be backed up somewhere the cloud backup
 can't reach.
 
 I keep a copy in a Bitwarden secure note (local vault, not cloud sync) and on paper.
 Never in S3, Dropbox, rclone to Backblaze, or any cloud provider. If an attacker gets
-the repo, they also get the encrypted values -- and if they can somehow get the key, they
-get everything. Keeping the key on a different attack surface from the ciphertexts is
-the whole point.
+the repo, they also get the encrypted values. If they can somehow get the key, they get
+everything. Keeping the key on a different attack surface from the ciphertexts is deliberate.
 
-The public key -- the `age1pq1...` recipient string in `.sops.yaml` -- is fine to commit
+The public key, the `age1pq1...` recipient string in `.sops.yaml`, is fine to commit
 and share. It's the private key in `keys.txt` that needs to stay cold.
-
----
 
 ## `.sops.yaml` configuration
 
@@ -102,13 +95,11 @@ creation_rules:
     encrypted_regex: "TunnelSecret"
 ```
 
-Three things I'd call out:
-
 `&age_key` / `*age_key` is a YAML anchor. The recipient string appears once; everything
 references it. When I rotate the key, I change one line.
 
 `unencrypted_regex` leaves non-secrets in plaintext. Values like `TZ`, `PUID`, and
-`NODE_ENV` aren't secrets -- they're config. Leaving them unencrypted means `git diff`
+`NODE_ENV` aren't secrets. They're config. Leaving them unencrypted means `git diff`
 on a `.env.sops` shows readable changes to config alongside opaque blobs for actual secrets.
 It also makes the file slightly less hostile to debugging.
 
@@ -116,8 +107,6 @@ The `.sops` suffix in the path regex (`*.env(\.sops)?$`) means the same creation
 matches both `app.env` (a plaintext file you're encrypting for the first time) and
 `app.env.sops` (an already-encrypted file). I use `.env.sops` as the canonical form
 in git.
-
----
 
 ## The `sopsx` wrapper
 
@@ -183,17 +172,15 @@ encryption fails halfway, the existing `.env.sops` is untouched. The `--filename
 flag tells SOPS which creation rule to match against, since we're encrypting `/dev/stdin`
 rather than the actual target path.
 
-What started as `sopsx` grew. I kept reaching for adjacent operations -- "list every
-encrypted file in the tree", "show me which plaintext copies are stale", "test-decrypt
-all of them after a key rotation", "inject these vars into a subprocess for one command"
--- and ended up with a handful of overlapping wrappers. They've since collapsed into a
-single `secrets` script with subcommands. The encrypt/decrypt logic above is one of them
-(`secrets sopsx`); the other notable additions are `secrets exec-env` (decrypt and
-inject as environment variables for a subprocess, backed by `sops exec-env`) and
-`secrets keys` (list variable names without decrypting values to stdout). Fleet ops
-(`list`, `verify`, `diff`) round it out.
-
----
+The `sopsx` wrapper grew as I kept reaching for adjacent operations: list every encrypted file
+in the tree, show which plaintext copies are stale, test-decrypt all of them after a key
+rotation, and inject variables into a subprocess for one command. That ended up as a
+handful of overlapping wrappers, which I later collapsed into a single `secrets` script
+with subcommands. It includes the encrypt/decrypt logic above (`secrets sopsx`). The
+other notable additions are `secrets exec-env` (decrypt and inject as environment
+variables for a subprocess, backed by `sops exec-env`) and `secrets keys` (list variable
+names without decrypting values to stdout). Fleet operations (`list`, `verify`, `diff`)
+fill out the rest.
 
 ## `just` recipes
 
@@ -237,14 +224,12 @@ The rotation pipeline: `sopsx -d` writes plaintext to stdout, `sed`
 substitutes the value, `sopsx -e` reads from stdin and encrypts back to the same file.
 The new value `$NEW` exists only in shell memory. No temp file, no plaintext on disk.
 
-`exec-env` covers a different gap. When a script needs the decrypted values as
-environment variables for a subprocess -- a one-shot CLI tool, a test runner, an
-out-of-band query -- the alternative is `source <(sops -d file.env.sops)`, which leaves
+`exec-env` covers a different gap. A script may need the decrypted values as environment
+variables for a one-shot CLI tool, a test runner, or an out-of-band query. The alternative
+is `source <(sops -d file.env.sops)`, which leaves
 the variables in the calling shell's environment afterwards. `secrets exec-env` runs the
 subprocess directly, so the variables exist only in that child's address space and are
 gone when it exits.
-
----
 
 ## The deploy pattern: `sops exec-file`
 
@@ -285,7 +270,7 @@ up *args:
     fi
 ```
 
-The `else` branch handles stacks without secrets -- not every service has a `.env.sops`,
+The `else` branch handles stacks without secrets. Not every service has a `.env.sops`,
 and the recipe should work uniformly either way. From the caller's perspective:
 
 ```bash
@@ -300,8 +285,6 @@ hl up hermes
 hl ps monitoring
 hl logs mattermost
 ```
-
----
 
 ## What the encrypted file looks like
 
@@ -320,14 +303,12 @@ sops_lastmodified=2026-04-28T14:23:11Z
 
 The non-secret values (`TZ`, `PUID`, `COMPOSE_PROJECT_NAME`) are plaintext. The actual
 secrets are AES-256-GCM ciphertext. The metadata footer includes the encrypted data key
-wrapped to the `age1pq1...` recipient -- this is what SOPS decrypts first, using your
+wrapped to the `age1pq1...` recipient. SOPS decrypts that first with your
 age private key, before it can decrypt anything else.
 
 Note that `sops_age__list_0__recipient` stores the *public* key, not the private key.
 Committing the file to a public repo exposes the public key and the ciphertexts, but not
 the private key. Anyone who doesn't have `~/.config/sops/age/keys.txt` cannot decrypt it.
-
----
 
 ## Disaster recovery
 
@@ -354,27 +335,25 @@ failed. I run it after any key restoration, any sops or age upgrade, and any tim
 not sure the key on disk is the right one.
 
 There is no key revocation in age. If the private key is lost and there's no offline
-backup, the secrets encrypted to it are unrecoverable -- the age key was the only gate.
+backup, the secrets encrypted to it are unrecoverable. The age key was the only gate.
 If the key is compromised, the recovery path is generating a new keypair, updating the
 recipient in `.sops.yaml`, and re-encrypting every `.sops` file with the new key.
-
----
 
 ## Things that will burn you
 
 `just config <stack>` renders the compose config with secrets injected and writes it to
 stdout. I've found it useful for debugging, but it decrypts everything inline. Piping
-that output to a file, or pasting it into a chat window, negates the whole workflow.
+that output to a file, or pasting it into a chat window, exposes the secrets.
 
 `--no-fifo` is off by default. The first time I tried `sops exec-file` without it, Docker
 Compose failed silently on `--env-file` with a file handle error. Turn it on.
 
-Shell variables holding secrets are fine in scripts -- `NEW=$(openssl rand -hex 32)` stays
+Shell variables holding secrets are fine in scripts. `NEW=$(openssl rand -hex 32)` stays
 in process memory. Writing `echo "$NEW" > /tmp/newsecret` creates a world-readable file
 that survives reboots on some systems. The distinction matters less when you're the only
 user on the machine; it matters more if the machine is shared or if tmp is persistent.
 
-The cloud backup trap is the one I think about most. My B2 bucket contains encrypted
+The cloud backup dependency still worries me most. My B2 bucket contains encrypted
 copies of everything in `~/Documents`. If the age key were also in that bucket, a
 bucket compromise would be enough to decrypt everything in it. The key has to live
 somewhere the backup can't reach.
